@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Báo Cáo Kho Hàng – TOK VN | 17/06/2026</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Tahoma,Arial,sans-serif;background:#eef1f6;color:#1e2a38;font-size:14px;line-height:1.5}
+
+/* HEADER */
+.header{background:linear-gradient(135deg,#0f2744 0%,#1a3a5c 60%,#1d4d79 100%);color:#fff;padding:18px 36px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 4px 16px rgba(0,0,0,.25)}
+.header-left h1{font-size:19px;font-weight:800;letter-spacing:.3px}
+.header-left p{font-size:11.5px;opacity:.65;margin-top:3px}
+.header-right{text-align:right}
+.header-right .tag{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);padding:5px 14px;border-radius:20px;font-size:12px;font-weight:700;display:inline-block}
+.header-right .note{font-size:10.5px;opacity:.55;margin-top:5px}
+
+/* LAYOUT SIDEBAR */
+.app-layout{display:flex;align-items:flex-start}
+.sidebar{width:196px;flex-shrink:0;background:#fff;border-right:2px solid #dce3ed;position:sticky;top:0;height:100vh;overflow-y:auto;box-shadow:2px 0 8px rgba(0,0,0,.07);z-index:200;display:flex;flex-direction:column}
+.sidebar-section{padding:10px 0 6px;border-bottom:1px solid #eef1f6}
+.sidebar-label{padding:8px 18px 4px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:#aabb}
+.content-wrap{flex:1;min-width:0;overflow-x:hidden}
+
+/* NAV TABS – dọc */
+.navbar{display:flex;flex-direction:column;gap:0;padding:8px 0}
+.nav-tab{padding:11px 18px;font-size:13px;font-weight:700;color:#667788;cursor:pointer;border-left:3px solid transparent;transition:all .15s;user-select:none;display:flex;align-items:center;gap:7px;line-height:1.3}
+.nav-tab:hover{color:#1a3a5c;background:#f5f7fa}
+.nav-tab.active{color:#1a3a5c;border-left-color:#f5a623;background:#f0f4fa}
+.num-chip{background:#eef1f6;padding:1px 7px;border-radius:10px;font-size:10.5px;margin-left:auto;color:#889;flex-shrink:0}
+.nav-tab.active .num-chip{background:#1a3a5c;color:#fff}
+
+/* MAIN */
+main{padding:22px 28px}
+.page{display:none}
+.page.active{display:block;animation:fadeIn .25s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+
+/* SECTION HEAD */
+.sec-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;padding-bottom:12px;border-bottom:2px solid #dce3ed}
+.sec-head h2{font-size:17px;font-weight:800;color:#0f2744;display:flex;align-items:center;gap:10px}
+.sec-head h2::before{content:'';width:5px;height:22px;background:#f5a623;border-radius:3px;display:inline-block;flex-shrink:0}
+.sec-sub{font-size:12px;color:#99aabb;margin-top:3px;margin-left:15px}
+
+/* KPI CARDS */
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:22px}
+.kpi{background:#fff;border-radius:12px;padding:18px 22px;box-shadow:0 2px 10px rgba(0,0,0,.07);border-top:4px solid #1a3a5c;transition:transform .15s}
+.kpi:hover{transform:translateY(-3px);box-shadow:0 6px 20px rgba(0,0,0,.11)}
+.kpi.o{border-top-color:#f5a623}.kpi.g{border-top-color:#1db954}.kpi.r{border-top-color:#e74c3c}
+.kpi-lbl{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:#889;margin-bottom:8px}
+.kpi-val{font-size:28px;font-weight:900;color:#0f2744;line-height:1}
+.kpi-sub{font-size:11px;color:#aab;margin-top:6px}
+
+/* GRID */
+.g21{display:grid;grid-template-columns:2fr 1fr;gap:18px;margin-bottom:20px}
+.g11{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:20px}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px}
+
+/* CARD */
+.card{background:#fff;border-radius:12px;padding:20px 22px;box-shadow:0 2px 10px rgba(0,0,0,.07);margin-bottom:20px}
+.card:last-child{margin-bottom:0}
+.card-title{font-size:13px;font-weight:800;color:#0f2744;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.card-title::before{content:'';width:8px;height:8px;border-radius:50%;background:#1a3a5c;display:inline-block;flex-shrink:0}
+.chart-wrap{position:relative;height:260px}
+
+/* TABLES */
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+thead th{background:#f3f5f9;color:#445566;font-weight:800;padding:9px 13px;text-align:left;border-bottom:2px solid #dce3ed;white-space:nowrap}
+tbody td{padding:8px 13px;border-bottom:1px solid #eef1f6;color:#334455;vertical-align:middle}
+tbody tr:hover td{background:#f8f9fc}
+tbody tr:last-child td{border-bottom:none}
+.tbl-foot{display:flex;align-items:center;justify-content:space-between;margin-top:12px;color:#889;font-size:11.5px;flex-wrap:wrap;gap:6px}
+
+/* BADGES */
+.b{display:inline-block;padding:2px 9px;border-radius:10px;font-size:11px;font-weight:700;white-space:nowrap}
+.b-blue{background:#e8f2ff;color:#1a5fb4}
+.b-green{background:#e8faf0;color:#1a9e4f}
+.b-orange{background:#fff3e0;color:#c97010}
+.b-red{background:#fde8e8;color:#cc2222}
+.b-gray{background:#f0f2f5;color:#6677aa}
+.b-dark{background:#2c0808;color:#ff6b6b}
+
+/* PROGRESS BAR */
+.pbar{height:5px;background:#eef1f6;border-radius:3px;overflow:hidden;display:inline-block;width:100%}
+.pb{height:100%;border-radius:3px}
+.pb-b{background:#1a3a5c}.pb-o{background:#f5a623}.pb-r{background:#e74c3c}.pb-g{background:#1db954}.pb-t{background:#16a085}
+
+/* URGENCY CARDS */
+.uc{padding:16px 20px;border-top:3px solid #ccc}
+.uc.r{border-top-color:#e74c3c;background:#fff8f8}
+.uc.o{border-top-color:#f5a623;background:#fffbf3}
+.uc.g{border-top-color:#1db954;background:#f4fef8}
+.uc-hd{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.7px;margin-bottom:14px}
+.uc.r .uc-hd{color:#e74c3c}.uc.o .uc-hd{color:#c97010}.uc.g .uc-hd{color:#1a9e4f}
+.uc-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px dashed #eef1f6;font-size:12px}
+.uc-row:last-child{border-bottom:none}
+.uc-code{font-weight:800;color:#1a3a5c;font-family:'Courier New',monospace;font-size:12px}
+.uc-info{color:#667788;font-size:11.5px}
+
+/* SEARCH */
+.search-row{display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+.s-input{padding:7px 13px;border:1.5px solid #dce3ed;border-radius:8px;font-size:13px;outline:none;min-width:200px;flex:1;max-width:300px}
+.s-input:focus{border-color:#1a3a5c}
+.s-sel{padding:7px 11px;border:1.5px solid #dce3ed;border-radius:8px;font-size:13px;outline:none;color:#334455}
+.s-sel:focus{border-color:#1a3a5c}
+
+/* PAGINATION */
+.pagi{display:flex;gap:5px;align-items:center}
+.pg-btn{padding:5px 11px;border:1.5px solid #dce3ed;background:#fff;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700;color:#556;transition:all .15s}
+.pg-btn:hover,.pg-btn.active{background:#1a3a5c;color:#fff;border-color:#1a3a5c}
+
+/* INFO BOX */
+.info-box{background:#e8f4ff;border-left:4px solid #2980b9;padding:11px 15px;border-radius:0 8px 8px 0;margin-bottom:18px;font-size:12.5px;color:#1a3a5c;line-height:1.65}
+.info-box.warn{background:#fff8e8;border-left-color:#f5a623;color:#5a3a00}
+
+/* MISC */
+.neg{color:#cc2222;font-weight:800}
+.delta-up{color:#1a9e4f;font-size:11px;font-weight:800}
+.delta-dn{color:#cc2222;font-size:11px;font-weight:800}
+.delta-eq{color:#889;font-size:11px;font-weight:700}
+
+/* FILTER BAR */
+.filter-bar{background:#fff;border-bottom:1px solid #dce3ed;padding:8px 28px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;position:sticky;top:0;z-index:150;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.filter-label{font-size:11.5px;font-weight:800;color:#667788;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
+.month-btns{display:flex;gap:5px;flex-wrap:wrap}
+.m-btn{padding:4px 13px;border:1.5px solid #dce3ed;background:#fff;border-radius:20px;cursor:pointer;font-size:12px;font-weight:700;color:#667788;transition:all .15s;white-space:nowrap}
+.m-btn:hover{border-color:#1a3a5c;color:#1a3a5c}
+.m-btn.active{background:#1a3a5c;color:#fff;border-color:#1a3a5c}
+.m-btn.tet{border-color:#f5a623;color:#c97010}
+.m-btn.tet.active{background:#f5a623;color:#fff}
+
+/* QUESTION BLOCK */
+.q-block{display:flex;align-items:center;gap:14px;margin-bottom:14px;padding:11px 18px;background:#f5f7fb;border-left:4px solid #1a3a5c;border-radius:0 8px 8px 0}
+.q-block .q-num{font-size:22px;font-weight:900;color:#f5a623;min-width:34px;line-height:1}
+.q-block strong{font-size:14px;font-weight:800;color:#0f2744;display:block;line-height:1.3}
+.q-block span{font-size:11.5px;color:#889;display:block;margin-top:2px}
+
+/* STEP FLOW */
+.flow-steps{display:flex;align-items:center;gap:0;margin-bottom:20px;flex-wrap:wrap}
+.flow-step{background:#fff;border:1.5px solid #dce3ed;padding:10px 18px;font-size:12px;font-weight:700;color:#667788;position:relative;cursor:pointer;transition:all .15s}
+.flow-step:not(:first-child)::before{content:'›';position:absolute;left:-12px;top:50%;transform:translateY(-50%);color:#c0c8d4;font-size:16px;font-weight:900;z-index:1}
+.flow-step:first-child{border-radius:8px 0 0 8px}
+.flow-step:last-child{border-radius:0 8px 8px 0}
+.flow-step.active{background:#1a3a5c;color:#fff;border-color:#1a3a5c}
+.flow-step.warn{background:#fde8e8;border-color:#e74c3c;color:#cc2222}
+.flow-step-num{font-size:10px;opacity:.7;margin-right:5px}
+
+/* DECISION CARD */
+.dec-banner{background:linear-gradient(135deg,#0f2744,#1d4d79);color:#fff;border-radius:12px;padding:16px 22px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.dec-banner h3{font-size:14px;font-weight:800;margin-bottom:4px}
+.dec-banner p{font-size:12px;opacity:.75}
+.dec-tag{background:rgba(255,255,255,.15);padding:5px 14px;border-radius:20px;font-size:11.5px;font-weight:700;white-space:nowrap}
+.num-b{font-weight:800;color:#0f2744}
+code{background:#f3f5f9;padding:2px 6px;border-radius:4px;font-size:11.5px;font-family:'Courier New',monospace}
+
+@media(max-width:900px){
+  main{padding:14px}
+  .kpi-row{grid-template-columns:repeat(2,1fr)}
+  .g21,.g11{grid-template-columns:1fr}
+  .g3{grid-template-columns:1fr}
+  .header{flex-direction:column;gap:12px;text-align:center}
+}
+@media print{
+  .navbar,.search-row{display:none!important}
+  .page{display:block!important;page-break-before:always}
+  .page:first-child{page-break-before:auto}
+  body{background:#fff}
+  .card{box-shadow:none;border:1px solid #ddd}
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-left">
+    <h1>BÁO CÁO KHO HÀNG – TOK VN</h1>
+    <p>SX-KD-XNK Trục Truyền Động &amp; Vòng Bi &nbsp;|&nbsp; Phụ tùng &amp; Phụ trợ Ô tô</p>
+  </div>
+  <div class="header-right">
+    <span class="tag">Ngày: 17/06/2026</span>
+    <div class="note">Tổng hợp từ dữ liệu bán hàng + tồn kho</div>
+  </div>
+</div>
+
+<!-- NAVBAR -->
+<div class="app-layout">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-section">
+    <div class="sidebar-label">Menu</div>
+    <nav class="navbar">
+      <div class="nav-tab active" onclick="showPage('p1',this)">Tổng quan</div>
+      <div class="nav-tab" onclick="showPage('p3',this)">Tình trạng kho</div>
+      <div class="nav-tab" onclick="showPage('p4',this)">Cần nhập hàng</div>
+      <div class="nav-tab" onclick="showPage('p5',this)">Chi tiết</div>
+    </nav>
+  </div>
+</aside>
+
+<!-- NỘI DUNG -->
+<div class="content-wrap">
+  <!-- FILTER BAR -->
+  <div class="filter-bar">
+    <span class="filter-label">Xem theo tháng:</span>
+    <div class="month-btns" id="monthBtns"></div>
+    <span id="filterNote" style="font-size:11px;color:#889;margin-left:8px"></span>
+  </div>
+
+<main>
+
+<!-- ============================= TRANG 1: TỔNG QUAN ============================= -->
+<div id="p1" class="page active">
+
+  <div class="dec-banner">
+    <div>
+      <h3>Báo cáo Kho Hàng – TOK VN</h3>
+      <p>Chọn tháng ở thanh lọc → xem tổng quan → phân tích bán → kiểm tra kho → ra quyết định nhập</p>
+    </div>
+    <span class="dec-tag" id="bannerMonth">T06/2026</span>
+  </div>
+
+  <div class="kpi-row" id="kpiRow"></div>
+
+  <div class="g11">
+    <div class="card" style="margin-bottom:0">
+      <div class="card-title">So sánh doanh số 6 tháng (SL bán & Giao dịch)</div>
+      <div class="chart-wrap" style="height:220px"><canvas id="cCombo"></canvas></div>
+    </div>
+    <div class="card" style="margin-bottom:0">
+      <div class="card-title">Tỷ trọng bán hàng theo nhóm hàng</div>
+      <div class="chart-wrap" style="height:220px"><canvas id="cGrp"></canvas></div>
+    </div>
+  </div>
+
+  <div class="g11">
+    <div class="card" style="margin-bottom:0;display:flex;flex-direction:column">
+      <div class="card-title">Phân bổ tồn kho (Top 6 kho lớn nhất)</div>
+      <div class="chart-wrap" style="height:300px"><canvas id="cWH"></canvas></div>
+    </div>
+    <div class="card" style="margin-bottom:0">
+    <div class="card-title">Tóm tắt 16 kho hàng</div>
+    <div class="tbl-wrap" style="max-height:340px;overflow-y:auto">
+    <table>
+      <thead><tr style="position:sticky;top:0;z-index:1">
+        <th>Mã Kho</th><th>Số SKU có hàng</th><th>Tổng SL tồn</th>
+        <th>Tỷ trọng (%)</th><th>Trực quan</th><th>Trạng thái</th>
+      </tr></thead>
+      <tbody id="tbWH"></tbody>
+    </table>
+    </div>
+  </div><!-- end card table -->
+  </div><!-- end g11 -->
+</div>
+
+
+<!-- ============================= TRANG 3: TÌNH TRẠNG KHO ============================= -->
+<div id="p3" class="page">
+  <div class="sec-head">
+    <div>
+      <h2>Tình trạng kho hàng</h2>
+      <div class="sec-sub">Hàng đang nằm ở đâu? Kho nào có vấn đề?</div>
+    </div>
+  </div>
+
+  <!-- Q1: Kho nào tồn nhiều nhất? -->
+  <div class="q-block">
+    <span class="q-num">01</span>
+    <div><strong>Kho nào tồn nhiều nhất?</strong><span>Tổng SL tồn và tỷ trọng theo từng kho</span></div>
+  </div>
+  <div class="g11" style="margin-bottom:28px">
+    <div class="card" style="margin-bottom:0">
+      <div class="card-title">Tỷ trọng tồn kho (Top 6 kho)</div>
+      <div class="chart-wrap"><canvas id="cWHPie"></canvas></div>
+    </div>
+    <div class="card" style="margin-bottom:0">
+      <div class="card-title">Tổng SL tồn theo kho</div>
+      <div class="chart-wrap"><canvas id="cWHBar"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Q2: SKU nào tồn nhiều? -->
+  <div class="q-block">
+    <span class="q-num">02</span>
+    <div><strong>Kho nào có nhiều SKU hoạt động nhất?</strong><span>Mức độ đa dạng mã hàng tại từng kho</span></div>
+  </div>
+  <div class="card" style="margin-bottom:28px">
+    <div class="card-title">Số SKU hoạt động theo kho</div>
+    <div class="chart-wrap" style="height:240px"><canvas id="cSKU"></canvas></div>
+  </div>
+
+  <!-- Q3: Sản phẩm nào tồn nhiều? -->
+  <div class="q-block">
+    <span class="q-num">03</span>
+    <div><strong>Sản phẩm nào tồn nhiều nhất?</strong><span>Top 10 mã hàng có số lượng tồn kho cao nhất</span></div>
+  </div>
+  <div class="card" style="margin-bottom:28px">
+    <div class="card-title">Top 10 sản phẩm tồn nhiều nhất</div>
+    <div class="chart-wrap" style="height:280px"><canvas id="cTopSKU"></canvas></div>
+  </div>
+
+  <!-- Q4: Tồn bao lâu rồi? -->
+  <div class="q-block">
+    <span class="q-num">04</span>
+    <div><strong>Tồn bao lâu rồi?</strong><span>Phân loại theo Tháng tồn = Tồn kho ÷ SL bán/tháng</span></div>
+  </div>
+  <div class="g11" style="margin-bottom:28px">
+    <div class="card" style="margin-bottom:0">
+      <div class="card-title">Phân loại mức độ tồn kho (số SKU)</div>
+      <div class="chart-wrap"><canvas id="cPhanLoai"></canvas></div>
+    </div>
+    <div class="card" style="margin-bottom:0">
+      <div class="card-title">Tháng tồn – Top 12 sản phẩm bán chạy</div>
+      <div class="chart-wrap" style="height:300px"><canvas id="cThangTon"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Q5: Bảng tổng hợp -->
+  <div class="q-block">
+    <span class="q-num">05</span>
+    <div><strong>Bảng tổng hợp</strong><span>Chi tiết tình trạng tồn kho từng kho hàng</span></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Chi tiết từng kho</div>
+    <div class="tbl-wrap">
+    <table>
+      <thead><tr>
+        <th>Mã Kho</th><th>SKU có hàng</th><th>Tổng SL tồn</th>
+        <th>% Tổng tồn</th><th>Trực quan</th><th>Âm kho</th><th>Loại kho</th>
+      </tr></thead>
+      <tbody id="tbWHD"></tbody>
+    </table>
+    </div>
+    <button id="btnToggleKho" onclick="toggleKho()" style="display:none;margin-top:12px;width:100%;padding:8px;border:1.5px dashed #dce3ed;background:#f8f9fc;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;color:#667788;transition:all .15s" onmouseover="this.style.borderColor='#1a3a5c';this.style.color='#1a3a5c'" onmouseout="this.style.borderColor='#dce3ed';this.style.color='#667788'"></button>
+  </div>
+</div>
+
+<!-- ============================= TRANG 4: CẦN NHẬP HÀNG ============================= -->
+<div id="p4" class="page">
+  <div class="sec-head">
+    <div>
+      <h2>Cần nhập hàng</h2>
+      <div class="sec-sub">Nhập cái gì? Bao nhiêu? Mức độ ưu tiên?</div>
+    </div>
+  </div>
+
+  <div class="dec-banner" style="padding:14px 20px">
+    <div>
+      <h3>Công thức ra quyết định</h3>
+      <p>Tháng tồn = Tồn kho ÷ SL bán/tháng &nbsp;|&nbsp; Khẩn cấp &lt; 2 tháng &nbsp;|&nbsp; Theo dõi 2–4 tháng &nbsp;|&nbsp; Ổn định &gt; 4 tháng</p>
+    </div>
+    <div style="text-align:right;font-size:11.5px;opacity:.8;white-space:nowrap">
+      Kết hợp:<br>MOQ nhà máy<br>Khả năng tiền mặt
+    </div>
+  </div>
+
+  <div class="g3">
+    <div class="uc r">
+      <div class="uc-hd">KHẨN CẤP – Dưới 2 tháng tồn</div>
+      <div class="uc-row"><span class="uc-code">A-YN-22</span><span class="uc-info">Âm kho: -26 đơn vị</span></div>
+      <div class="uc-row"><span class="uc-code">TOK-19</span><span class="uc-info">1,3 tháng tồn (170 đvt)</span></div>
+      <div class="uc-row"><span class="uc-code">TOK-512</span><span class="uc-info">1,7 tháng tồn (260 đvt)</span></div>
+    </div>
+    <div class="uc o">
+      <div class="uc-hd">THEO DÕI – Từ 2 đến 4 tháng tồn</div>
+      <div class="uc-row"><span class="uc-code">TOK-7</span><span class="uc-info">3,7 tháng tồn (1.050 đvt)</span></div>
+      <div class="uc-row"><span class="uc-code">TOK-44</span><span class="uc-info">6,9 tháng tồn (1.360 đvt)</span></div>
+      <div class="uc-row"><span class="uc-code">TOK-803</span><span class="uc-info">6,2 tháng tồn (1.900 đvt)</span></div>
+    </div>
+    <div class="uc g">
+      <div class="uc-hd">ỔN ĐỊNH – Trên 4 tháng tồn</div>
+      <div class="uc-row"><span class="uc-code">HUB-TO-034</span><span class="uc-info">36,6 tháng tồn</span></div>
+      <div class="uc-row"><span class="uc-code">A-FD-12A</span><span class="uc-info">62,9 tháng tồn</span></div>
+      <div class="uc-row"><span class="uc-code">HUB-MI-007</span><span class="uc-info">118,5 tháng tồn</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Bảng đề xuất nhập hàng – Top 15 sản phẩm bán chạy</div>
+    <div class="tbl-wrap">
+    <table>
+      <thead><tr>
+        <th>Mã hàng</th><th>Nhóm</th><th>SL bán/tháng</th>
+        <th>Tồn kho hiện tại</th><th>Tháng tồn</th>
+        <th>Mức độ ưu tiên</th><th>Gợi ý nhập (đơn vị)</th>
+      </tr></thead>
+      <tbody id="tbReorder"></tbody>
+    </table>
+    </div>
+    <div class="tbl-foot">
+      <span>Sắp xếp theo mức độ khẩn cấp</span>
+      <span>Số lượng gợi ý = 3 tháng tiêu thụ (chưa tính MOQ nhà máy)</span>
+    </div>
+  </div>
+</div>
+
+<!-- ============================= TRANG 5: CHI TIẾT ============================= -->
+<div id="p5" class="page">
+  <div class="sec-head">
+    <div>
+      <h2>Tra cứu chi tiết</h2>
+      <div class="sec-sub">Tìm mã hàng cụ thể, xem tồn kho chi tiết từng kho</div>
+    </div>
+  </div>
+
+  <div class="search-row">
+    <input class="s-input" type="text" id="sQ" placeholder="Tìm mã hàng..." oninput="filterDet()">
+    <select class="s-sel" id="sGrp" onchange="filterDet()">
+      <option value="">Tất cả nhóm</option>
+      <option>GPR_12</option><option>GPR_22</option><option>GPR_23</option><option>GPR_29</option>
+      <option>GPR_34</option><option>GPR_36</option><option>GPR_43</option><option>GPR_44</option>
+    </select>
+    <select class="s-sel" id="sSt" onchange="filterDet()">
+      <option value="">Tất cả trạng thái</option>
+      <option value="neg">Âm kho (&lt; 0)</option>
+      <option value="low">Tồn thấp (&lt; 300 đvt)</option>
+      <option value="ok">Bình thường</option>
+    </select>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Danh sách tồn kho chi tiết <span id="detCount" style="font-weight:400;color:#889;font-size:12px;margin-left:6px"></span></div>
+    <div class="tbl-wrap">
+    <table>
+      <thead><tr>
+        <th>#</th><th>Mã hàng</th><th>Nhóm</th><th>ĐVT</th>
+        <th>KH-001</th><th>KH-002</th><th>KH-012</th><th>KH-013</th><th>Kho khác</th>
+        <th>Tổng tồn</th><th>SL bán/tháng</th><th>Tháng tồn</th>
+      </tr></thead>
+      <tbody id="tbDet"></tbody>
+    </table>
+    </div>
+    <div class="tbl-foot">
+      <span id="detInfo"></span>
+      <div class="pagi" id="detPagi"></div>
+    </div>
+  </div>
+</div>
+
+</main>
+</div><!-- end content-wrap -->
+</div><!-- end app-layout -->
+
+<script>
+// ============================================================
+// DỮ LIỆU
+// ============================================================
+const KHO = [
+  {id:'KH-001',sku:4217,tot:402423,neg:true},
+  {id:'KH-002',sku:4097,tot:39736, neg:false},
+  {id:'KH-003',sku:198, tot:609,   neg:false},
+  {id:'KH-004',sku:585, tot:2088,  neg:true},
+  {id:'KH-005',sku:86,  tot:210,   neg:false},
+  {id:'KH-006',sku:1555,tot:10538, neg:false},
+  {id:'KH-007',sku:5,   tot:31029, neg:false},
+  {id:'KH-008',sku:79,  tot:19728, neg:false},
+  {id:'KH-009',sku:20,  tot:821,   neg:false},
+  {id:'KH-010',sku:34,  tot:124,   neg:false},
+  {id:'KH-011',sku:13,  tot:207,   neg:false},
+  {id:'KH-012',sku:153, tot:807359,neg:false},
+  {id:'KH-013',sku:1064,tot:338258,neg:false},
+  {id:'KH-014',sku:1294,tot:6840,  neg:false},
+  {id:'KH-015',sku:2,   tot:2,     neg:false},
+  {id:'KH-016',sku:38,  tot:84,    neg:false},
+];
+const TONG_TON = KHO.reduce((s,w)=>s+w.tot,0);
+
+const NHOM = {GPR_12:187,GPR_22:156,GPR_23:198,GPR_29:1989,GPR_34:143,GPR_36:112,GPR_43:97,GPR_44:113};
+
+const HANG = [
+  {ma:'TOK-238',   nhom:'GPR_29',dvt:'Cái',ban:371,w1:520, w2:180,w12:1680,w13:620, ot:210},
+  {ma:'TOK-803',   nhom:'GPR_29',dvt:'Cái',ban:307,w1:480, w2:90, w12:890, w13:340, ot:100},
+  {ma:'TOK-7',     nhom:'GPR_22',dvt:'Bộ', ban:284,w1:220, w2:60, w12:580, w13:140, ot:50},
+  {ma:'TOK-125',   nhom:'GPR_29',dvt:'Cái',ban:245,w1:890, w2:120,w12:2100,w13:450, ot:180},
+  {ma:'TOK-44',    nhom:'GPR_34',dvt:'Cái',ban:198,w1:320, w2:0,  w12:780, w13:200, ot:60},
+  {ma:'HUB-TO-034',nhom:'GPR_12',dvt:'Bộ', ban:187,w1:1200,w2:340,w12:4100,w13:980, ot:220},
+  {ma:'HUB-TO-012',nhom:'GPR_12',dvt:'Bộ', ban:165,w1:980, w2:280,w12:2900,w13:760, ot:160},
+  {ma:'TOK-512',   nhom:'GPR_29',dvt:'Cái',ban:154,w1:80,  w2:20, w12:120, w13:40,  ot:0},
+  {ma:'A-FD-12A',  nhom:'GPR_23',dvt:'Cái',ban:143,w1:1800,w2:450,w12:5200,w13:1200,ot:350},
+  {ma:'YN-KA-16',  nhom:'GPR_43',dvt:'Cái',ban:138,w1:760, w2:180,w12:2400,w13:560, ot:120},
+  {ma:'TOK-19',    nhom:'GPR_29',dvt:'Cái',ban:127,w1:60,  w2:0,  w12:80,  w13:30,  ot:0},
+  {ma:'TOK-201',   nhom:'GPR_29',dvt:'Cái',ban:119,w1:450, w2:110,w12:1200,w13:380, ot:90},
+  {ma:'HUB-MI-007',nhom:'GPR_12',dvt:'Bộ', ban:108,w1:2100,w2:560,w12:7800,w13:1900,ot:440},
+  {ma:'TOK-67',    nhom:'GPR_29',dvt:'Cái',ban:97, w1:380, w2:90, w12:960, w13:280, ot:70},
+  {ma:'A-YN-22',   nhom:'GPR_23',dvt:'Cái',ban:89, w1:-26, w2:0,  w12:0,   w13:0,   ot:0},
+  {ma:'TOK-88',    nhom:'GPR_29',dvt:'Cái',ban:83, w1:920, w2:200,w12:2800,w13:680, ot:140},
+  {ma:'YN-FD-08',  nhom:'GPR_43',dvt:'Cái',ban:76, w1:650, w2:140,w12:1900,w13:420, ot:90},
+  {ma:'A-TO-34',   nhom:'GPR_23',dvt:'Bộ', ban:71, w1:1100,w2:280,w12:3400,w13:900, ot:200},
+  {ma:'TOK-330',   nhom:'GPR_29',dvt:'Cái',ban:68, w1:280, w2:70, w12:840, w13:220, ot:50},
+  {ma:'HUB-YN-019',nhom:'GPR_12',dvt:'Bộ', ban:62, w1:1600,w2:380,w12:4800,w13:1100,ot:260},
+  {ma:'MZ-KA-05',  nhom:'GPR_36',dvt:'Cái',ban:58, w1:340, w2:80, w12:980, w13:260, ot:60},
+  {ma:'TOK-45',    nhom:'GPR_29',dvt:'Cái',ban:52, w1:180, w2:40, w12:520, w13:140, ot:30},
+  {ma:'A-MI-22',   nhom:'GPR_23',dvt:'Bộ', ban:47, w1:890, w2:200,w12:2600,w13:680, ot:150},
+  {ma:'YN-TO-11',  nhom:'GPR_43',dvt:'Cái',ban:44, w1:420, w2:90, w12:1200,w13:310, ot:70},
+  {ma:'TOK-156',   nhom:'GPR_34',dvt:'Cái',ban:41, w1:1200,w2:280,w12:3600,w13:920, ot:200},
+  {ma:'FD-HU-09',  nhom:'GPR_44',dvt:'Cái',ban:38, w1:680, w2:150,w12:2000,w13:500, ot:110},
+  {ma:'MZ-FD-17',  nhom:'GPR_36',dvt:'Cái',ban:34, w1:140, w2:30, w12:400, w13:100, ot:20},
+  {ma:'TOK-902',   nhom:'GPR_29',dvt:'Cái',ban:31, w1:360, w2:80, w12:1050,w13:270, ot:60},
+  {ma:'HUB-FD-028',nhom:'GPR_12',dvt:'Bộ', ban:28, w1:1840,w2:420,w12:5600,w13:1400,ot:320},
+  {ma:'A-KA-36',   nhom:'GPR_23',dvt:'Cái',ban:24, w1:560, w2:120,w12:1650,w13:420, ot:90},
+];
+HANG.forEach(p=>{
+  p.ton = p.w1+p.w2+p.w12+p.w13+p.ot;
+  p.thang = p.ton<0 ? -999 : (p.ban>0 ? p.ton/p.ban : 9999);
+});
+
+// ---- Dữ liệu 6 tháng (T01 – T06/2026) ----
+const NHAN_THANG = ['T01','T02','T03','T04','T05','T06'];
+
+const TONG_THANG = [
+  {nhan:'T01/2026', gdich:2234, slBan:5120, khach:398, sku:712},
+  {nhan:'T02/2026', gdich:1876, slBan:4320, khach:341, sku:634}, // Tết
+  {nhan:'T03/2026', gdich:2456, slBan:5680, khach:445, sku:756},
+  {nhan:'T04/2026', gdich:2678, slBan:6124, khach:478, sku:801},
+  {nhan:'T05/2026', gdich:2812, slBan:6456, khach:501, sku:845},
+  {nhan:'T06/2026', gdich:2995, slBan:6976, khach:524, sku:888},
+];
+
+// Xu hướng top 5 sản phẩm theo tháng
+const XU_HUONG_SP = [
+  {ma:'TOK-238', mau:'#1a3a5c', data:[298,231,318,344,356,371]},
+  {ma:'TOK-803', mau:'#f5a623', data:[245,198,267,289,301,307]},
+  {ma:'TOK-7',   mau:'#1db954', data:[198,167,234,256,271,284]},
+  {ma:'TOK-512', mau:'#e74c3c', data:[178,143,189,201,156,154]}, // đang giảm
+  {ma:'A-YN-22', mau:'#8e44ad', data:[102, 89, 97, 91, 95, 89]},
+];
+
+// Xu hướng tồn kho cuối tháng – 3 kho chính
+const XU_HUONG_KHO = [
+  {id:'KH-012', mau:'#1a3a5c', data:[850240,832100,825680,820450,812900,807359]},
+  {id:'KH-001', mau:'#f5a623', data:[450120,438560,425340,418920,410680,402423]},
+  {id:'KH-013', mau:'#1db954', data:[368450,358210,352140,348760,344120,338258]},
+];
+
+// Delta so với tháng trước (T05 → T06)
+const DELTA = {
+  gdich: ((2995-2812)/2812*100).toFixed(1),
+  slBan: ((6976-6456)/6456*100).toFixed(1),
+  khach: ((524-501)/501*100).toFixed(1),
+  sku:   ((888-845)/845*100).toFixed(1),
+};
+
+// ============================================================
+// MONTH FILTER STATE
+// ============================================================
+let selMonth = 5; // default T06 (index 5)
+const CHARTS = {};
+
+function renderMonthBtns(){
+  const tet=[1]; // T02 = Tết
+  document.getElementById('monthBtns').innerHTML=
+    TONG_THANG.map((t,i)=>`
+      <button class="m-btn${tet.includes(i)?' tet':''}${i===selMonth?' active':''}"
+        onclick="selectMonth(${i})">${t.nhan}</button>`
+    ).join('');
+}
+
+function selectMonth(idx){
+  selMonth=idx;
+  renderMonthBtns();
+  renderKPI();
+  // Update combo chart: highlight selected month bar
+  if(CHARTS.combo){
+    CHARTS.combo.data.datasets[0].backgroundColor=
+      TONG_THANG.map((_,i)=>i===selMonth?'#1a3a5c':'rgba(26,58,92,.3)');
+    CHARTS.combo.update();
+  }
+  // Update banner
+  document.getElementById('bannerMonth').textContent=TONG_THANG[selMonth].nhan;
+  const note=selMonth===1?'(Tháng Tết – doanh số thấp)':'';
+  document.getElementById('filterNote').textContent=note;
+}
+
+// ============================================================
+// RENDER KPI CARDS (month-aware)
+// ============================================================
+function renderKPI(){
+  const cur=TONG_THANG[selMonth];
+  const prev=selMonth>0?TONG_THANG[selMonth-1]:null;
+  function delta(cur,prev){
+    if(!prev) return '<span class="delta-eq">Tháng đầu kỳ</span>';
+    const pct=((cur-prev)/prev*100);
+    if(pct>0) return `<span class="delta-up">▲ +${pct.toFixed(1)}% vs tháng trước</span>`;
+    if(pct<0) return `<span class="delta-dn">▼ ${pct.toFixed(1)}% vs tháng trước</span>`;
+    return '<span class="delta-eq">= không đổi</span>';
+  }
+  document.getElementById('kpiRow').innerHTML=`
+    <div class="kpi">
+      <div class="kpi-lbl">Tổng mã hàng (SKU)</div>
+      <div class="kpi-val">7.010</div>
+      <div class="kpi-sub">${cur.sku.toLocaleString('vi-VN')} mã có bán hàng &nbsp;${delta(cur.sku,prev?.sku)}</div>
+    </div>
+    <div class="kpi o">
+      <div class="kpi-lbl">Tổng tồn kho</div>
+      <div class="kpi-val">1.660.056</div>
+      <div class="kpi-sub">16 kho hàng | Snapshot T06/2026</div>
+    </div>
+    <div class="kpi g">
+      <div class="kpi-lbl">SL bán ra (${cur.nhan})</div>
+      <div class="kpi-val">${cur.slBan.toLocaleString('vi-VN')}</div>
+      <div class="kpi-sub">${cur.gdich.toLocaleString('vi-VN')} giao dịch / ${cur.khach} KH &nbsp;${delta(cur.slBan,prev?.slBan)}</div>
+    </div>
+    <div class="kpi r">
+      <div class="kpi-lbl">Cảnh báo âm kho</div>
+      <div class="kpi-val">3</div>
+      <div class="kpi-sub">Mã hàng có số lượng tồn &lt; 0</div>
+    </div>`;
+}
+
+// ============================================================
+// TIỆN ÍCH
+// ============================================================
+function f(v){return Math.abs(v).toLocaleString('vi-VN')}
+function phan(v,t){return((v/t)*100).toFixed(1)}
+
+function nhanThang(m){
+  if(m===-999) return '<span class="b b-dark">Âm kho</span>';
+  if(m===9999)  return '<span class="b b-gray">Chưa bán</span>';
+  if(m<2)       return `<span class="b b-red">${m.toFixed(1)} tháng</span>`;
+  if(m<4)       return `<span class="b b-orange">${m.toFixed(1)} tháng</span>`;
+  return         `<span class="b b-green">${m.toFixed(1)} tháng</span>`;
+}
+function nhanTrangThai(m){
+  if(m===-999) return '<span class="b b-dark">Cần xử lý ngay</span>';
+  if(m<2)      return '<span class="b b-red">Nhập khẩn</span>';
+  if(m<4)      return '<span class="b b-orange">Theo dõi</span>';
+  return        '<span class="b b-green">Ổn định</span>';
+}
+function oTD(v){
+  return v<0
+    ? `<td class="neg">${v.toLocaleString('vi-VN')}</td>`
+    : `<td>${f(v)}</td>`;
+}
+
+// ============================================================
+// ĐIỀU HƯỚNG
+// ============================================================
+const TRANG_CO_LOC = ['p1','p3']; // các trang dùng bộ lọc tháng
+function showPage(id,tab){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  tab.classList.add('active');
+  document.querySelector('.filter-bar').style.display=
+    TRANG_CO_LOC.includes(id) ? 'flex' : 'none';
+}
+
+// ============================================================
+// RENDER BẢNG
+// ============================================================
+function renderKho(){
+  const s=[...KHO].sort((a,b)=>b.tot-a.tot);
+  document.getElementById('tbWH').innerHTML=s.map(w=>{
+    const p=phan(w.tot,TONG_TON);
+    const bw=Math.max(2,phan(w.tot,s[0].tot));
+    const bc=w.tot>100000?'pb-b':w.tot>10000?'pb-o':'pb-g';
+    const st=w.neg?'<span class="b b-orange">Có âm kho</span>':
+             w.tot>100000?'<span class="b b-blue">Kho chính</span>':'<span class="b b-gray">Kho phụ</span>';
+    return `<tr>
+    <td><strong>${w.id}</strong></td><td>${f(w.sku)}</td>
+    <td class="num-b">${f(w.tot)}</td><td>${p}%</td>
+    <td><div class="pbar"><div class="pb ${bc}" style="width:${bw}%"></div></div></td>
+    <td>${st}</td></tr>`;
+  }).join('');
+}
+
+let khoExpanded = false;
+function renderKhoCT(){
+  const s=[...KHO].sort((a,b)=>b.tot-a.tot);
+  const hienThi = khoExpanded ? s : s.slice(0,8);
+  function row(w){
+    const p=phan(w.tot,TONG_TON);
+    const bw=Math.max(2,phan(w.tot,s[0].tot));
+    const bc=w.tot>100000?'pb-b':w.tot>10000?'pb-o':'pb-g';
+    const neg=w.neg?'<span class="b b-orange">Có âm</span>':'<span class="b b-green">Không âm</span>';
+    const loai=w.tot>100000?'<span class="b b-blue">Kho chính</span>':
+               w.tot>5000?'<span class="b b-gray">Kho vừa</span>':'<span class="b b-gray">Kho phụ</span>';
+    return `<tr>
+    <td><strong>${w.id}</strong></td><td>${f(w.sku)}</td>
+    <td class="num-b">${f(w.tot)}</td><td>${p}%</td>
+    <td><div class="pbar"><div class="pb ${bc}" style="width:${bw}%"></div></div></td>
+    <td>${neg}</td><td>${loai}</td></tr>`;
+  }
+  document.getElementById('tbWHD').innerHTML=hienThi.map(row).join('');
+  // Nút toggle
+  const btn=document.getElementById('btnToggleKho');
+  if(s.length>8){
+    btn.style.display='block';
+    btn.textContent=khoExpanded
+      ? `Thu gọn ▲`
+      : `Xem thêm ${s.length-8} kho ▼`;
+  } else {
+    btn.style.display='none';
+  }
+}
+function toggleKho(){
+  khoExpanded=!khoExpanded;
+  renderKhoCT();
+}
+
+
+function renderDeXuat(){
+  const s=[...HANG].sort((a,b)=>a.thang-b.thang);
+  document.getElementById('tbReorder').innerHTML=s.slice(0,15).map(p=>{
+    const uuTien=p.thang===-999?'<span class="b b-dark">Cực kỳ khẩn</span>':
+                 p.thang<2?'<span class="b b-red">Khẩn cấp</span>':
+                 p.thang<4?'<span class="b b-orange">Theo dõi</span>':
+                           '<span class="b b-green">Ổn định</span>';
+    const soLuongGoiY = p.thang<0
+      ? p.ban*3
+      : p.thang<4
+        ? Math.round((4-Math.max(0,p.thang))*p.ban)
+        : '—';
+    const hienThiTon=p.ton<0
+      ? `<span class="neg">${p.ton.toLocaleString('vi-VN')}</span>`
+      : f(p.ton);
+    return `<tr>
+    <td><code>${p.ma}</code></td>
+    <td><span class="b b-gray">${p.nhom}</span></td>
+    <td>${f(p.ban)}</td>
+    <td>${hienThiTon}</td>
+    <td>${nhanThang(p.thang)}</td>
+    <td>${uuTien}</td>
+    <td>${soLuongGoiY==='—'
+      ? '<span style="color:#aab">—</span>'
+      : `<strong>${typeof soLuongGoiY==='number'?f(soLuongGoiY):soLuongGoiY}</strong>`
+    }</td></tr>`;
+  }).join('');
+}
+
+// ---- BẢNG CHI TIẾT (có tìm kiếm & phân trang) ----
+let trang=1; const MOI_TRANG=12;
+
+function layDuLieu(){
+  const q=document.getElementById('sQ').value.toLowerCase();
+  const g=document.getElementById('sGrp').value;
+  const st=document.getElementById('sSt').value;
+  return HANG.filter(p=>{
+    if(q && !p.ma.toLowerCase().includes(q)) return false;
+    if(g && p.nhom!==g) return false;
+    if(st==='neg' && p.ton>=0) return false;
+    if(st==='low' && (p.ton<0||p.ton>=300)) return false;
+    if(st==='ok'  && p.ton<300) return false;
+    return true;
+  });
+}
+
+function renderCT(){
+  const data=layDuLieu(), tongSo=data.length;
+  const batDau=(trang-1)*MOI_TRANG, trang_data=data.slice(batDau,batDau+MOI_TRANG);
+
+  document.getElementById('detCount').textContent=`(${tongSo} kết quả)`;
+
+  document.getElementById('tbDet').innerHTML=trang_data.map((p,i)=>{
+    const hienThiTon=p.ton<0
+      ? `<td><strong class="neg">${p.ton.toLocaleString('vi-VN')}</strong></td>`
+      : `<td><strong>${f(p.ton)}</strong></td>`;
+    return `<tr>
+    <td>${batDau+i+1}</td>
+    <td><code>${p.ma}</code></td>
+    <td><span class="b b-gray">${p.nhom}</span></td>
+    <td>${p.dvt}</td>
+    ${oTD(p.w1)}${oTD(p.w2)}${oTD(p.w12)}${oTD(p.w13)}${oTD(p.ot)}
+    ${hienThiTon}
+    <td>${f(p.ban)}</td>
+    <td>${nhanThang(p.thang)}</td></tr>`;
+  }).join('');
+
+  const tongTrang=Math.ceil(tongSo/MOI_TRANG);
+  document.getElementById('detInfo').textContent=
+    `Trang ${trang}/${tongTrang} | Hiển thị ${batDau+1}–${Math.min(batDau+MOI_TRANG,tongSo)} / ${tongSo}`;
+
+  const pb=document.getElementById('detPagi');
+  pb.innerHTML=Array.from({length:tongTrang},(_,i)=>
+    `<button class="pg-btn${i+1===trang?' active':''}" onclick="diTrang(${i+1})">${i+1}</button>`
+  ).join('');
+}
+
+function filterDet(){trang=1;renderCT();}
+function diTrang(n){trang=n;renderCT();}
+
+// ============================================================
+// BIỂU ĐỒ
+// ============================================================
+const MAU=['#1a3a5c','#f5a623','#1db954','#e74c3c','#16a085','#8e44ad','#2980b9','#c97010'];
+
+Chart.register(ChartDataLabels);
+
+// Helper format nhãn số lớn
+function fmtK(v){ return v>=1000000?(v/1000000).toFixed(1)+'M':v>=1000?(v/1000).toFixed(0)+'K':v; }
+
+// Datalabels mặc định cho biểu đồ cột (đứng)
+const DL_BAR = {
+  anchor:'end', align:'top',
+  color:'#334455', font:{weight:'800',size:10.5},
+  formatter: fmtK,
+  padding:{bottom:2}
+};
+
+// Datalabels cho biểu đồ cột ngang
+const DL_HBAR = {
+  anchor:'end', align:'right',
+  color:'#334455', font:{weight:'800',size:11},
+  formatter: v => v,
+  clamp:true, clip:false,
+  padding:{left:4}
+};
+
+// Datalabels cho biểu đồ tròn/donut
+function dlPie(minPct=3){
+  return {
+    formatter:(v,ctx)=>{
+      const tot=ctx.dataset.data.reduce((a,b)=>a+b,0);
+      const p=(v/tot*100);
+      return p>=minPct ? p.toFixed(1)+'%' : '';
+    },
+    color:'#fff', font:{weight:'900',size:11},
+    textShadowColor:'rgba(0,0,0,.4)', textShadowBlur:3
+  };
+}
+
+function khoiTaoBieuDo(){
+  const sapXep=[...KHO].sort((a,b)=>b.tot-a.tot);
+  const top6=sapXep.slice(0,6);
+
+  // Biểu đồ 1 – Phân bổ kho (cột)
+  new Chart(document.getElementById('cWH'),{
+    type:'bar',
+    data:{
+      labels:top6.map(w=>w.id),
+      datasets:[{label:'Tổng tồn kho',data:top6.map(w=>w.tot),backgroundColor:MAU,borderRadius:7}]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      layout:{padding:{top:26}},
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label:c=>` ${f(c.raw)} đvt`}},
+        datalabels:DL_BAR
+      },
+      scales:{
+        y:{grid:{color:'#f0f2f5'},ticks:{callback:v=>v>=1000000?(v/1000000).toFixed(1)+'M':v>=1000?(v/1000).toFixed(0)+'K':v}},
+        x:{grid:{display:false}}
+      }
+    }
+  });
+
+  // Biểu đồ 2 – Nhóm hàng (donut)
+  new Chart(document.getElementById('cGrp'),{
+    type:'doughnut',
+    data:{
+      labels:Object.keys(NHOM),
+      datasets:[{data:Object.values(NHOM),backgroundColor:MAU,borderWidth:2,borderColor:'#fff'}]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,cutout:'60%',
+      plugins:{
+        legend:{position:'right',labels:{font:{size:11},boxWidth:12}},
+        tooltip:{callbacks:{label:c=>` ${c.label}: ${f(c.raw)} giao dịch`}},
+        datalabels:dlPie(5)
+      }
+    }
+  });
+
+
+  // Biểu đồ 5 – Tỷ trọng kho (pie)
+  new Chart(document.getElementById('cWHPie'),{
+    type:'pie',
+    data:{
+      labels:top6.map(w=>w.id),
+      datasets:[{data:top6.map(w=>w.tot),backgroundColor:MAU,borderWidth:2,borderColor:'#fff'}]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{position:'right',labels:{font:{size:11},boxWidth:12}},
+        tooltip:{callbacks:{label:c=>` ${f(c.raw)} đvt (${phan(c.raw,TONG_TON)}%)`}},
+        datalabels:{
+          ...dlPie(3),
+          formatter:(v,ctx)=>{
+            const tot=ctx.dataset.data.reduce((a,b)=>a+b,0);
+            const p=(v/tot*100);
+            const id=top6[ctx.dataIndex].id;
+            return p>=3 ? id+'\n'+p.toFixed(1)+'%' : '';
+          }
+        }
+      }
+    }
+  });
+
+  // Biểu đồ COMBO – SL bán (cột) + Giao dịch (line), tháng chọn nổi bật (Tab 1)
+  CHARTS.combo = new Chart(document.getElementById('cCombo'),{
+    type:'bar',
+    data:{
+      labels:NHAN_THANG,
+      datasets:[
+        {
+          type:'bar', label:'SL bán',
+          data:TONG_THANG.map(t=>t.slBan),
+          backgroundColor:TONG_THANG.map((_,i)=>i===selMonth?'#1a3a5c':'rgba(26,58,92,.3)'),
+          borderRadius:6, yAxisID:'y',
+          datalabels:{
+            anchor:'end',align:'top',font:{weight:'800',size:10},
+            color:(ctx)=>ctx.dataIndex===selMonth?'#1a3a5c':'#99a',
+            formatter:v=>v>=1000?(v/1000).toFixed(1)+'K':v
+          }
+        },
+        {
+          type:'line', label:'Giao dịch',
+          data:TONG_THANG.map(t=>t.gdich),
+          borderColor:'#f5a623',backgroundColor:'transparent',
+          tension:.35, pointRadius:4, pointBackgroundColor:
+            TONG_THANG.map((_,i)=>i===selMonth?'#f5a623':'rgba(245,166,35,.5)'),
+          borderWidth:2, yAxisID:'y1',
+          datalabels:{display:false}
+        }
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      layout:{padding:{top:28}},
+      plugins:{
+        legend:{position:'top',labels:{boxWidth:12,font:{size:11}}},
+        tooltip:{mode:'index',intersect:false,callbacks:{
+          label:c=>c.dataset.type==='bar'?` SL bán: ${c.raw.toLocaleString('vi-VN')} đvt`:` Giao dịch: ${c.raw.toLocaleString('vi-VN')}`
+        }},
+        datalabels:{} // handled per-dataset
+      },
+      scales:{
+        y:{grid:{color:'#f0f2f5'},position:'left',ticks:{callback:v=>v>=1000?(v/1000).toFixed(0)+'K':v},title:{display:true,text:'SL bán',font:{size:10}}},
+        y1:{grid:{display:false},position:'right',ticks:{callback:v=>v>=1000?(v/1000).toFixed(0)+'K':v},title:{display:true,text:'Giao dịch',font:{size:10}}},
+        x:{grid:{display:false}}
+      }
+    }
+  });
+
+
+  // Biểu đồ 6 – SKU theo kho (sort theo số SKU giảm dần)
+  const top8=[...KHO].sort((a,b)=>b.sku-a.sku).slice(0,8);
+  new Chart(document.getElementById('cSKU'),{
+    type:'bar',
+    data:{
+      labels:top8.map(w=>w.id),
+      datasets:[{label:'Số SKU',data:top8.map(w=>w.sku),backgroundColor:'#16a085',borderRadius:6}]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      layout:{padding:{top:26}},
+      plugins:{
+        legend:{display:false},
+        datalabels:{...DL_BAR, formatter:v=>v.toLocaleString('vi-VN')}
+      },
+      scales:{y:{grid:{color:'#f0f2f5'}},x:{grid:{display:false}}}
+    }
+  });
+}
+
+// ============================================================
+// KHỞI ĐỘNG
+// ============================================================
+document.addEventListener('DOMContentLoaded',()=>{
+  renderMonthBtns();
+  renderKPI();
+  renderKho();
+  renderKhoCT();
+  renderDeXuat();
+  renderCT();
+  khoiTaoBieuDo();
+});
+</script>
+</body>
+</html>
